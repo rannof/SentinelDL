@@ -18,7 +18,7 @@
 # *    along with this program.  If not, see <http://www.gnu.org/licenses/>.        *
 # ***********************************************************************************
 import socket
-socket.setdefaulttimeout(30)
+socket.setdefaulttimeout(300)
 import os,sys,urllib2,time,re,datetime,subprocess
 from xml.dom import minidom
 
@@ -67,6 +67,7 @@ class SciHubClient(object):
     self.authhandler = urllib2.HTTPBasicAuthHandler(self.passman) # handler of authentication
     self.proxyhandler = urllib2.ProxyHandler({}) # no proxy handler
     self.opener = urllib2.build_opener(self.authhandler,self.proxyhandler) # opener for the scihub web server
+    self.headers = self.opener.addheaders[:] # keep original headers
 
   def message(self,msg,newline=False,x=1000):
     'Print messages to terminal'
@@ -124,6 +125,7 @@ class SciHubClient(object):
       self.message("Can't Download %s. Not a valid URL.\n", True)
       return
     try:
+      self.opener.addheaders = self.headers[:] # reset opener headers
       DLf = self.opener.open(url,timeout=10) # open url, get the data file
     except Exception as Ex:
       print >> sys.stderr,'Error opening URL %s\n%s'%(url,str(Ex))
@@ -136,8 +138,9 @@ class SciHubClient(object):
       if fsize==DLsize: # make sure we did't download the file before
         print >> sys.stderr,'%s is already downloaded. skipping.'%(DLname)
         DLf.close()
-        return
+        return    
     starttime = time.time() # get download start time
+    tryouts = 0
     with open(DLname,'wb') as outfile: # open the output file for writing
       self.message('%s: %.2f MB\n'%(DLname,DLsize/131072.),True) # sent name and size to terminal
       while True: # just keep going, inside checks will break the loop as needed
@@ -145,9 +148,20 @@ class SciHubClient(object):
         try:
           data = DLf.read(131072) # read a 1 MB piece of data
 	except Exception as Ex:
-          print '\n',str(Ex)
-          DLf.close()
-          break
+          print >> sys.stderr,'\n',str(Ex)
+          tryouts = tryouts+1
+          time.sleep(30)
+          if tryouts>5:
+            DLf.close()
+            sys.exit('Oops.')
+          else:
+            print >> sys.stderr,'Retry...',str(Ex)
+            existSize = os.path.getsize(DLname) # get current point of saved data
+            self.opener.addheaders.append(("Range","bytes=%s-" % (existSize))) # set opener to start from current point
+            DLf.close() # colse old handler
+            DLf = self.opener.open(url,timeout=30) # reopen url, from last point
+            self.opener.addheaders = self.headers[:] # reset opener headers
+            continue # keep trying
         if not data: break # if no data, we got to the end of the file so break the loop
         outfile.write(data) # write the data to the output file
         DLrate = 1.0/(time.time()-steptime) # calculate current download rate
