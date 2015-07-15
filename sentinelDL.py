@@ -17,7 +17,8 @@
 # *    You should have received a copy of the GNU Lesser General Public License     *
 # *    along with this program.  If not, see <http://www.gnu.org/licenses/>.        *
 # ***********************************************************************************
-
+import socket
+socket.setdefaulttimeout(30)
 import os,sys,urllib2,time,re,datetime,subprocess
 from xml.dom import minidom
 
@@ -64,7 +65,8 @@ class SciHubClient(object):
     self.passman = urllib2.HTTPPasswordMgrWithDefaultRealm() # password manager
     self.passman.add_password(None, BASE_URL, USERNAME, PASSWORD) # add the credentials
     self.authhandler = urllib2.HTTPBasicAuthHandler(self.passman) # handler of authentication
-    self.opener = urllib2.build_opener(self.authhandler) # opener for the scihub web server
+    self.proxyhandler = urllib2.ProxyHandler({}) # no proxy handler
+    self.opener = urllib2.build_opener(self.authhandler,self.proxyhandler) # opener for the scihub web server
 
   def message(self,msg,newline=False,x=1000):
     'Print messages to terminal'
@@ -140,7 +142,12 @@ class SciHubClient(object):
       self.message('%s: %.2f MB\n'%(DLname,DLsize/131072.),True) # sent name and size to terminal
       while True: # just keep going, inside checks will break the loop as needed
         steptime = time.time()  # download interval start
-        data = DLf.read(131072) # read a 1 MB piece of data
+        try:
+          data = DLf.read(131072) # read a 1 MB piece of data
+	except Exception as Ex:
+          print '\n',str(Ex)
+          DLf.close()
+          break
         if not data: break # if no data, we got to the end of the file so break the loop
         outfile.write(data) # write the data to the output file
         DLrate = 1.0/(time.time()-steptime) # calculate current download rate
@@ -150,7 +157,7 @@ class SciHubClient(object):
         self.message('%s| %d%% @ %.2f sec (%.2f MB/sec) ETA: %s'\
                      %(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S"),outfile.tell()/float(DLsize)*100,DLt,DLrate,ETA)) # print some statistics to terminal
       self.message('%s| %d%% @ %.2f sec (%.2f MB/sec)\n'\
-                   %(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S"),outfile.tell()/float(DLsize)*100,DLt,DLsize/DLt)) # print final statistics to terminal
+                   %(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S"),outfile.tell()/float(DLsize)*100,DLt,DLsize//131072./DLt)) # print final statistics to terminal
     DLf.close() # close connection to server
 
 if __name__=='__main__':
