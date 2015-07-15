@@ -155,7 +155,7 @@ class SciHubClient(object):
             DLf.close()
             sys.exit('Oops.')
           else:
-            print >> sys.stderr,'Retry...',str(Ex)
+            print >> sys.stderr,'Retry (%d/5)...'%tryouts
             existSize = os.path.getsize(DLname) # get current point of saved data
             self.opener.addheaders.append(("Range","bytes=%s-" % (existSize))) # set opener to start from current point
             DLf.close() # colse old handler
