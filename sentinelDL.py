@@ -134,13 +134,14 @@ class SciHubClient(object):
     if not DLf: return 0 # make sure we have a connection to a file
     DLname = DLf.info()['Content-Disposition'].split("=")[-1].strip().replace('"','') # get file name
     DLsize = int(DLf.info()['Content-Length']) # get file size
+    print >> sys.stderr,"%\nDownloading %s (%d byets)"%(DLname,DLsize)
     if os.path.exists(DLname): # check if same name file exists on current location
       fsize = os.path.getsize(DLname) # if so, what is its size
       DLf.close()
       if fsize==DLsize: # make sure we did't download the file before
-        print >> sys.stderr,'%s\n\talready downloaded. skipping.'%(DLname)
-        return
-      print >> sys.stderr,"Starting form %d"%fsize
+        print >> sys.stderr,'\n\talready downloaded. skipping.'
+        return 1
+      print >> sys.stderr,"%\n\tStarting form %d"%fsize
       self.opener.addheaders.append(("Range","bytes=%s-" % (fsize))) # set opener to start from current point
       DLf = self.opener.open(url,timeout=600) # reopen url, from last point
       self.opener.addheaders = self.headers[:] # reset opener headers 
