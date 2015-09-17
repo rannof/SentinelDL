@@ -130,8 +130,8 @@ class SciHubClient(object):
       DLf = self.opener.open(url,timeout=600) # open url, get the data file
     except Exception as Ex:
       print >> sys.stderr,'Error opening URL %s\n%s'%(url,str(Ex))
-      return
-    if not DLf: return # make sure we have a connection to a file
+      return 0
+    if not DLf: return 0 # make sure we have a connection to a file
     DLname = DLf.info()['Content-Disposition'].split("=")[-1].strip().replace('"','') # get file name
     DLsize = int(DLf.info()['Content-Length']) # get file size
     if os.path.exists(DLname): # check if same name file exists on current location
@@ -151,39 +151,41 @@ class SciHubClient(object):
       while True: # just keep going, inside checks will break the loop as needed
         steptime = time.time()  # download interval start
         try:
-          data = DLf.read(2*131072) # read a 2 MB piece of data
+          data = DLf.read(131072) # read a 1 MB piece of data
         except Exception as Ex:
           print >> sys.stderr,'\n',str(Ex)
           tryouts = tryouts+1
           if tryouts>5:
-            DLf.close()
-            sys.exit('Oops.')
+            DLf.close() # close connection to server
+            print >> sys.stderr,'Oops.'
+            return 0
           else:
-            print >> sys.stderr,'Retry (%d/5)...'%tryouts
+            data = 0
+        if not data:
+          if os.path.getsize(DLname)==DLsize: 
+            print >> sys.stderr,'\n%s: Done.'%DLname
+            break # we got to the end of the file so break the loop
+          else:
+            print >> sys.stderr,'\nRetry (%d/5)...'%tryouts
             fsize = os.path.getsize(DLname) # get current point of saved data
             DLf.close() # colse old handler
-            time.sleep(30)
+            time.sleep(30) # have a short resting time
             self.opener.addheaders.append(("Range","bytes=%s-" % (fsize))) # set opener to start from current point
             DLf = self.opener.open(url,timeout=600) # reopen url, from last point
             self.opener.addheaders = self.headers[:] # reset opener headers
             continue # keep trying
-        if not data: 
-          if os.path.getsize(DLname)==DLsize: 
-            print >> sys.stderr,'%s: Done.'%DLname
-            break # we got to the end of the file so break the loop
-          else:
-            print >> sys.stderr,'\nError! No data recieved. ----------'
-            break
         outfile.write(data) # write the data to the output file
-        DLrate = 2.0/(time.time()-steptime) # calculate current download rate
-        DLt = (1.0/DLrate)+steptime-starttime # calculate time since starting to download
-        ETA = (DLsize-outfile.tell())/(DLrate*2*131072) # Estimate Arrival Time in seconds
+        NOW = time.time()
+        DLrate = (len(data)/131072.)/(NOW-steptime) # calculate current download rate
+        DLt = NOW-starttime # calculate time since starting to download
+        ETA = (DLsize-outfile.tell())/(DLrate*131072) # Estimate Arrival Time in seconds
         ETA = str(datetime.datetime.fromtimestamp(ETA)-datetime.datetime.fromtimestamp(0))[:-3] # reformat ETA for humans.
         self.message('%s| %d%% @ %.2f sec (%.2f MB/sec) ETA: %s'\
                      %(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S"),outfile.tell()/float(DLsize)*100,DLt,DLrate,ETA)) # print some statistics to terminal
-      self.message('%s| %d%% @ %.2f sec (%.2f MB/sec)\n'\
-                   %(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S"),outfile.tell()/float(DLsize)*100,DLt,DLsize/2./131072./DLt)) # print final statistics to terminal
+      self.message('%s| %d%% @ %.2f sec\n'\
+                   %(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S"),outfile.tell()/float(DLsize)*100)) # print final statistics to terminal
     DLf.close() # close connection to server
+    return 1
 
 if __name__=='__main__':
   if not len(sys.argv)==2 or\
