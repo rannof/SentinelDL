@@ -134,40 +134,39 @@ class SciHubClient(object):
     if not DLf: return 0 # make sure we have a connection to a file
     DLname = DLf.info()['Content-Disposition'].split("=")[-1].strip().replace('"','') # get file name
     DLsize = int(DLf.info()['Content-Length']) # get file size
-    print >> sys.stderr,"%\nDownloading %s (%d byets)"%(DLname,DLsize)
+    self.message('%s: %.2f MB\n'%(DLname,DLsize/131072.),True) # sent name and size to terminal
     if os.path.exists(DLname): # check if same name file exists on current location
       fsize = os.path.getsize(DLname) # if so, what is its size
       DLf.close()
       if fsize==DLsize: # make sure we did't download the file before
-        print >> sys.stderr,'\n\talready downloaded. skipping.'
+        self.message('\n\talready downloaded. skipping.',True)
         return 1
-      print >> sys.stderr,"%\n\tStarting form %d"%fsize
+      self.message("%\n\tStarting form %d"%fsize,True)
       self.opener.addheaders.append(("Range","bytes=%s-" % (fsize))) # set opener to start from current point
       DLf = self.opener.open(url,timeout=600) # reopen url, from last point
       self.opener.addheaders = self.headers[:] # reset opener headers 
     starttime = time.time() # get download start time
     tryouts = 0
     with open(DLname,'ab') as outfile: # open the output file for writing
-      self.message('%s: %.2f MB\n'%(DLname,DLsize/131072.),True) # sent name and size to terminal
       while True: # just keep going, inside checks will break the loop as needed
         steptime = time.time()  # download interval start
         try:
           data = DLf.read(131072) # read a 1 MB piece of data
         except Exception as Ex:
-          print >> sys.stderr,'\n',str(Ex)
+          self.message('%s\n'%str(Ex),True)
           tryouts = tryouts+1
           if tryouts>5:
             DLf.close() # close connection to server
-            print >> sys.stderr,'Oops.'
+            self.message('Oops.',True)
             return 0
           else:
             data = 0
         if not data:
           if os.path.getsize(DLname)==DLsize: 
-            print >> sys.stderr,'\n%s: Done.'%DLname
+            self.message('\n%s: Done.'%DLname,True)
             break # we got to the end of the file so break the loop
           else:
-            print >> sys.stderr,'\nRetry (%d/5)...'%tryouts
+            self.message('\nRetry (%d/5)...'%tryouts,True)
             fsize = os.path.getsize(DLname) # get current point of saved data
             DLf.close() # colse old handler
             time.sleep(30) # have a short resting time
