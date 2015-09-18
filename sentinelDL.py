@@ -139,9 +139,9 @@ class SciHubClient(object):
       fsize = os.path.getsize(DLname) # if so, what is its size
       DLf.close()
       if fsize==DLsize: # make sure we did't download the file before
-        self.message('\n\talready downloaded. skipping.',True)
+        self.message('\n\talready downloaded. skipping.\n',True)
         return 1
-      self.message("%\n\tStarting form %d"%fsize,True)
+      self.message("\n\tStarting form %d\n"%fsize,True)
       self.opener.addheaders.append(("Range","bytes=%s-" % (fsize))) # set opener to start from current point
       DLf = self.opener.open(url,timeout=600) # reopen url, from last point
       self.opener.addheaders = self.headers[:] # reset opener headers 
@@ -153,20 +153,20 @@ class SciHubClient(object):
         try:
           data = DLf.read(131072) # read a 1 MB piece of data
         except Exception as Ex:
-          self.message('%s\n'%str(Ex),True)
+          self.message('\n%s\n'%str(Ex),True)
           tryouts = tryouts+1
           if tryouts>5:
             DLf.close() # close connection to server
-            self.message('Oops.',True)
+            self.message('\nOops.\n',True)
             return 0
           else:
             data = 0
         if not data:
           if os.path.getsize(DLname)==DLsize: 
-            self.message('\n%s: Done.'%DLname,True)
+            self.message('\n%s: Done.\n'%DLname,True)
             break # we got to the end of the file so break the loop
           else:
-            self.message('\nRetry (%d/5)...'%tryouts,True)
+            self.message('\nRetry (%d/5)...\n'%tryouts,True)
             fsize = os.path.getsize(DLname) # get current point of saved data
             DLf.close() # colse old handler
             time.sleep(30) # have a short resting time
@@ -183,7 +183,7 @@ class SciHubClient(object):
         self.message('%s| %d%% @ %.2f sec (%.2f MB/sec) ETA: %s'\
                      %(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S"),outfile.tell()/float(DLsize)*100,DLt,DLrate,ETA)) # print some statistics to terminal
       self.message('%s| %d%% @ %.2f sec\n'\
-                   %(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S"),outfile.tell()/float(DLsize)*100)) # print final statistics to terminal
+                   %(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S"),outfile.tell()/float(DLsize)*100,DLt)) # print final statistics to terminal
     DLf.close() # close connection to server
     return 1
 
