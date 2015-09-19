@@ -154,7 +154,6 @@ class SciHubClient(object):
           data = DLf.read(131072) # read a 1 MB piece of data
         except Exception as Ex:
           self.message('\n%s\n'%str(Ex),True)
-          tryouts = tryouts+1
           if tryouts>5:
             DLf.close() # close connection to server
             self.message('\nOops.\n',True)
@@ -166,6 +165,7 @@ class SciHubClient(object):
             self.message('\n%s: Done.\n'%DLname,True)
             break # we got to the end of the file so break the loop
           else:
+            tryouts = tryouts+1
             self.message('\nRetry (%d/5)...\n'%tryouts,True)
             fsize = os.path.getsize(DLname) # get current point of saved data
             DLf.close() # colse old handler
