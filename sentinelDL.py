@@ -22,7 +22,7 @@ socket.setdefaulttimeout(600)
 import os,sys,urllib2,time,re,datetime,subprocess
 from xml.dom import minidom
 
-BASE_URL = 'https://scihub.esa.int/dhus/' # base URL of the Sentinel scihub
+BASE_URL = 'https://scihub.copernicus.eu/dhus/' # base URL of the Sentinel scihub
 
 def usage():
   sys.exit('''SentinelDL - A Python download client for Sentinel Data via scihub.esa.int
