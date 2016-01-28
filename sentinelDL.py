@@ -176,8 +176,11 @@ class SciHubClient(object):
             continue # keep trying
         outfile.write(data) # write the data to the output file
         NOW = time.time()
-        DLrate = (len(data)/131072.)/(NOW-steptime) # calculate current download rate
         DLt = NOW-starttime # calculate time since starting to download
+        if DLt:
+          DLrate = (len(data)/131072.)/(NOW-steptime) # calculate current download rate
+        else:
+          DLrate = 0
         ETA = (DLsize-outfile.tell())/(DLrate*131072) # Estimate Arrival Time in seconds
         ETA = str(datetime.datetime.fromtimestamp(ETA)-datetime.datetime.fromtimestamp(0))[:-3] # reformat ETA for humans.
         self.message('%s| %d%% @ %.2f sec (%.2f MB/sec) ETA: %s'\
