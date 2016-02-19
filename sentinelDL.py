@@ -177,8 +177,9 @@ class SciHubClient(object):
         outfile.write(data) # write the data to the output file
         NOW = time.time()
         DLt = NOW-starttime # calculate time since starting to download
-        if DLt:
-          DLrate = (len(data)/131072.)/(NOW-steptime) # calculate current download rate
+        DLstep = NOW-steptime # calculate time to download segment
+        if DLt and DLstep:
+          DLrate = (len(data)/131072.)/Dlstep # calculate current download rate
           ETA = (DLsize-outfile.tell())/(DLrate*131072) # Estimate Arrival Time in seconds
           ETA = str(datetime.datetime.fromtimestamp(ETA)-datetime.datetime.fromtimestamp(0))[:-3] # reformat ETA for humans.
         else:
