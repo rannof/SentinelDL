@@ -179,7 +179,7 @@ class SciHubClient(object):
         DLt = NOW-starttime # calculate time since starting to download
         DLstep = NOW-steptime # calculate time to download segment
         if DLt and DLstep:
-          DLrate = (len(data)/131072.)/Dlstep # calculate current download rate
+          DLrate = (len(data)/131072.)/DLstep # calculate current download rate
           ETA = (DLsize-outfile.tell())/(DLrate*131072) # Estimate Arrival Time in seconds
           ETA = str(datetime.datetime.fromtimestamp(ETA)-datetime.datetime.fromtimestamp(0))[:-3] # reformat ETA for humans.
         else:
