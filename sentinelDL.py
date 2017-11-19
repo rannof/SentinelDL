@@ -34,11 +34,11 @@ def usage():
           a file containing metalinks of products.
 
   INSTRUCTIONS:
-    1. Go to https://scihub.esa.int/ and register.
+    1. Go to https://scihub.copernicus.eu/ and register.
     2. create a file .credentials with a single line containing
        [USER]:[PASSWORD].
        where USER and PASSWORD are the scihub credentials.
-    3. Enter the hub at https://scihub.esa.int/dhus/ and log in.
+    3. Enter the hub at https://scihub.copernicus.eu/dhus/ and log in.
     4. Search for data.
     5. Add data to your cart.
     6. Save cart to a file (by default products.meta4).
@@ -47,9 +47,9 @@ def usage():
     9. Optionally, use the search string as URI
 
     More data and also how to build a search URL are available at:
-      https://scihub.esa.int/userguide
+      https://scihub.copernicus.eu/userguide
       and
-      https://scihub.esa.int/userguide/BatchScripting
+      https://scihub.copernicus.eu/userguide/BatchScripting
 
 By Ran Novitsky Nof (ran.nof@gmail.com) @ BSL, 2015
   ''')
