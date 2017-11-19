@@ -21,7 +21,8 @@ import socket
 socket.setdefaulttimeout(600)
 import os,sys,urllib2,time,re,datetime,subprocess
 from xml.dom import minidom
-
+import logging
+logging.basicConfig(format='%(asctime)s.%(msecs)03d | %(name)s | %(levelname)s | %(message)s', datefmt='%Y-%m-%dT%H:%M:%S', level='DEBUG')
 BASE_URL = 'https://scihub.copernicus.eu/dhus/' # base URL of the Sentinel scihub
 
 def usage():
@@ -88,16 +89,35 @@ class SciHubClient(object):
     if type(urls)==str: urls = [urls] # make sure we use a list of urls
     for url in urls:
       if re.match(self.BASE_URL+"odata/v1/Products\('.+'\)/\$value", url): # its a download pattern
+	logging.debug('Downloading {}'.format(url))
         self.download(url) # download data
-      if re.match(self.BASE_URL+"odata/v1/Products\?",url): # its a search pattern
+      elif re.match(self.BASE_URL+"odata/v1/Users\('.+'\)/Cart\('.+'\)/\$value", url): # its a download pattern
+        url = re.compile("(.+)Users\('.+'\)/Cart\(('.+')\)/\$value").sub(r"\1Products(\2)/$value",url)
+	logging.debug('Downloading {}'.format(url))
+        self.download(url) # download data
+      elif re.match(self.BASE_URL+"search?",url): # its a search pattern
+	logging.debug('searching for {}'.format(url))
         retval = self.search(url)  # get json xml returned from server for search
-        self.parseXML(retval) # parse the json xml
+        #self.parseXML(retval) # parse the json xml
+      else:
+        logging.error('Error with url {}'.format(url))
+
+  def procAtomXMLs(self,xmls,download=True):
+    'Prosess an Atom xml to extract data urls'
+    urls = []
+    for xml in xmls:
+      [urls.append("{}odata/v1/Products('{}')/$value".format(self.BASE_URL,el.childNodes[0].data)) for el in xml.getElementsByTagName('str') if el.getAttribute('name')=='uuid']
+    logging.debug('Found {} urls'.format(len(urls)))
+    if download: self.procURLs(urls[::-1]) # send urls for processing
+    return urls
+    
 
   def procMetalinkXMLs(self,xmls,download=True):
     'Process a metalink4 xml to extract data urls'
     urls = []
     for xml in xmls:
       [urls.append(el.childNodes[0].data) for el in xml.getElementsByTagName('url')] # extract urls in the metalink
+    logging.debug('Found {} urls'.format(len(urls)))
     if download: self.procURLs(urls[::-1]) # send urls for processing
     return urls
 
@@ -113,36 +133,39 @@ class SciHubClient(object):
     try:
       XMLf = self.opener.open(url,timeout=300) # open url - do the search, might take time
     except Exception as Ex:
-      print >> sys.stderr,'Error opening URL %s\n%s'%(url,str(Ex))
+      logging.error('Error opening URL {}\n{}'.format(url,Ex))
       return
     if not XMLf: return # make sure we got a response
     XML = minidom.parse(XMLf) # convert text to xml object
     XMLf.close() # close connection
     metalinks = [minidom.parseString(el.childNodes[0].data) for el in XML.getElementsByTagName('d:Metalink')] # extract only the metalinks
-    return self.procMetalinkXMLs(metalinks, download) # process the metalinks xmls
+    if metalinks:
+      return self.procMetalinkXMLs(metalinks, download) # process the metalinks xmls
+    else:
+      self.procAtomXMLs([XML])
 
   def download(self,url):
     'Download data from scihub server'
     if not re.match(self.BASE_URL+"odata/v1/Products\('.+'\)/\$value", url): # make sure its a download pattern
-      self.message("Can't Download %s. Not a valid URL.\n", True)
+      logging.error("Can't Download %s. Not a valid URL.")
       return
     try:
       #self.opener.addheaders = self.headers[:] # reset opener headers
       DLf = self.opener.open(url,timeout=600) # open url, get the data file
     except Exception as Ex:
-      print >> sys.stderr,'Error opening URL %s\n%s'%(url,str(Ex))
+      logging.error('Error opening URL {}\n{}'.format(url,Ex))
       return 0
     if not DLf: return 0 # make sure we have a connection to a file
     DLname = DLf.info()['Content-Disposition'].split("=")[-1].strip().replace('"','') # get file name
     DLsize = int(DLf.info()['Content-Length']) # get file size
-    self.message('%s: %.2f MB\n'%(DLname,DLsize/131072.),True) # sent name and size to terminal
+    logging.info('{}: {:.2f} MB'.format(DLname,DLsize/131072.)) # sent name and size to terminal
     if os.path.exists(DLname): # check if same name file exists on current location
       fsize = os.path.getsize(DLname) # if so, what is its size
       DLf.close()
       if fsize==DLsize: # make sure we did't download the file before
-        self.message('\n\talready downloaded. skipping.\n',True)
+        logging.info('Already downloaded. skipping.')
         return 1
-      self.message("\n\tStarting form %d\n"%fsize,True)
+      logging.info("Starting form {}".format(fsize))
       self.opener.addheaders.append(("Range","bytes=%s-" % (fsize))) # set opener to start from current point
       DLf = self.opener.open(url,timeout=600) # reopen url, from last point
       self.opener.addheaders = self.headers[:] # reset opener headers 
@@ -154,20 +177,20 @@ class SciHubClient(object):
         try:
           data = DLf.read(131072) # read a 1 MB piece of data
         except Exception as Ex:
-          self.message('\n%s\n'%str(Ex),True)
+          logging('{}'.format(Ex))
           if tryouts>5:
             DLf.close() # close connection to server
-            self.message('\nOops.\n',True)
+            logging.error('Oops.')
             return 0
           else:
             data = 0
         if not data:
           if os.path.getsize(DLname)==DLsize: 
-            self.message('\n%s: Done.\n'%DLname,True)
+            logging.info('{}: Done.'.format(DLname))
             break # we got to the end of the file so break the loop
           else:
             tryouts = tryouts+1
-            self.message('\nRetry (%d/5)...\n'%tryouts,True)
+            logging.info('Retry ({}/5)...'.format(tryouts))
             fsize = os.path.getsize(DLname) # get current point of saved data
             DLf.close() # colse old handler
             time.sleep(30) # have a short resting time
@@ -199,11 +222,13 @@ if __name__=='__main__':
   arg = sys.argv[1] # get the argument
   client = SciHubClient() # create a client
   if os.path.exists(arg): # if its a valid metalink4 file
+    logging.debug('Dowloading from meta-link file')
     client.downloadFromMetalink4(arg) # parse file and download data
-  elif not 'https' in arg: # if its a url
-    arg = '{}search?q={}'.format(BASE_URL,arg)
-    client.message('Attempting to use URI as search string: {}'.format(arg),True)
   else:
-    client.message('Processing URI',True)
-  client.procURLs(arg) # process url
+    if not 'https' in arg: # if its a url
+      arg = '{}search?q={}'.format(BASE_URL,arg).replace(' ','%20')
+      logging.debug('Attempting to use URI as search string: {}'.format(arg))
+    else:
+      logging.debug('Processing URI')
+    client.procURLs(arg) # process url
 
