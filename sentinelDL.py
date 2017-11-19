@@ -44,6 +44,7 @@ def usage():
     6. Save cart to a file (by default products.meta4).
     7. Run the code with the meta4 file name as a parameter.
     8. Instead of steps 5-7, provide product link as a parameter.
+    9. Optionally, use the search string as URI
 
     More data and also how to build a search URL are available at:
       https://scihub.esa.int/userguide
@@ -192,9 +193,12 @@ if __name__=='__main__':
          sys.argv[1] in ["-h","-H","--help"] : usage() # print usage statement if needed
   arg = sys.argv[1] # get the argument
   client = SciHubClient() # create a client
-  if 'https' in arg: # if its a url
-    client.procURLs(arg) # process url
-  elif os.path.exists(arg): # if its a valid metalink4 file
+  if os.path.exists(arg): # if its a valid metalink4 file
     client.downloadFromMetalink4(arg) # parse file and download data
+  elif not 'https' in arg: # if its a url
+    arg = '{}search?q={}'.format(BASE_URL,arg)
+    client.message('Attempting to use URI as search string: {}'.format(arg),True)
   else:
-    print >> sys.stderr,"Sorry, can't find file or link %s"%arg
+    client.message('Processing URI',True)
+  client.procURLs(arg) # process url
+
