@@ -22,7 +22,7 @@ socket.setdefaulttimeout(600)
 import os,sys,urllib2,time,re,datetime,subprocess
 from xml.dom import minidom
 
-BASE_URL = 'https://scihub.esa.int/dhus/' # base URL of the Sentinel scihub
+BASE_URL = 'https://scihub.copernicus.eu/dhus/' # base URL of the Sentinel scihub
 
 def usage():
   sys.exit('''SentinelDL - A Python download client for Sentinel Data via scihub.esa.int
@@ -177,10 +177,15 @@ class SciHubClient(object):
             continue # keep trying
         outfile.write(data) # write the data to the output file
         NOW = time.time()
-        DLrate = (len(data)/131072.)/(NOW-steptime) # calculate current download rate
         DLt = NOW-starttime # calculate time since starting to download
-        ETA = (DLsize-outfile.tell())/(DLrate*131072) # Estimate Arrival Time in seconds
-        ETA = str(datetime.datetime.fromtimestamp(ETA)-datetime.datetime.fromtimestamp(0))[:-3] # reformat ETA for humans.
+        DLstep = NOW-steptime # calculate time to download segment
+        if DLt and DLstep:
+          DLrate = (len(data)/131072.)/DLstep # calculate current download rate
+          ETA = (DLsize-outfile.tell())/(DLrate*131072) # Estimate Arrival Time in seconds
+          ETA = str(datetime.datetime.fromtimestamp(ETA)-datetime.datetime.fromtimestamp(0))[:-3] # reformat ETA for humans.
+        else:
+          DLrate = 0
+          ETA = 'N/A'
         self.message('%s| %d%% @ %.2f sec (%.2f MB/sec) ETA: %s'\
                      %(datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S"),outfile.tell()/float(DLsize)*100,DLt,DLrate,ETA)) # print some statistics to terminal
       self.message('%s| %d%% @ %.2f sec\n'\
