@@ -180,12 +180,13 @@ class SciHubClient(object):
                     with open(DLname,'ab') as outfile: # open the output file for writing
                         if data:
                             outfile.write(data)
+                            fsize = os.path.getsize(DLname)
                             NOW = time.time()
                             DLt = NOW - starttime  # calculate time since starting to download
                             DLstep = NOW - steptime  # calculate time to download segment
                             if DLt and DLstep:
                                 DLrate = (len(data) / 131072.) / DLstep  # calculate current download rate
-                                ETA = (DLsize - outfile.tell()) / (DLrate * 131072)  # Estimate Arrival Time in seconds
+                                ETA = (DLsize - fsize) / (DLrate * 131072)  # Estimate Arrival Time in seconds
                                 ETA = str(datetime.datetime.fromtimestamp(ETA) - datetime.datetime.fromtimestamp(0))[
                                       :-3]  # reformat ETA for humans.
                             else:
@@ -193,11 +194,11 @@ class SciHubClient(object):
                                 ETA = 'N/A'
                             message('%s| %d%% @ %.2f sec (%.2f MB/sec) ETA: %s' \
                                     % (datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S"),
-                                       outfile.tell() / float(DLsize) * 100, DLt, DLrate,
+                                       fsize / float(DLsize) * 100, DLt, DLrate,
                                        ETA))  # print some statistics to terminal
                 message('%s| %d%% @ %.2f sec\n' \
                                 % (datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S"),
-                                outfile.tell() / float(DLsize) * 100, DLt))  # print final statistics to terminal
+                                fsize / float(DLsize) * 100, DLt))  # print final statistics to terminal
             except Exception as Ex:
                 log.error(f'{Ex}')
                 tryouts += 1
