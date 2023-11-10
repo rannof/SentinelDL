@@ -175,6 +175,7 @@ class SciHubClient(object):
             try:
                 if tryouts > 0:
                     log.info(f'Retry ({tryouts}/5)...')
+                DLt = 0
                 for data in DLf.iter_content(chunk_size=131072):  # read a 1 MB piece of data
                     steptime = time.time()
                     with open(DLname,'ab') as outfile: # open the output file for writing
