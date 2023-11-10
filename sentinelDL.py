@@ -242,7 +242,7 @@ def set_logger(log, verbose=VERBOSE, log_level=LOG_LEVEL, logfile=LOG_FILE):
 if __name__=='__main__':
     args = parser.parse_args()
     set_logger(log, args.v, args.log_level, args.logfile)
-    client = SciHubClient() # create a client
+    client = SciHubClient(credfile=args.credfile, datapath=args.datapath) # create a client
     records = client.search_S1_SLC_data(start_date=args.start, end_date=args.end, aoifile=args.geometry, direction=args.direction, track=args.track, online=args.online)
     for record in records['value']:
         client.download(record['Id'])
