@@ -79,9 +79,16 @@ def get_keycloak(credfile='.credentials') -> str:
         )
     return r.json(), datetime.datetime.utcnow()
 
+def isTTY():
+    if os.isatty(sys.stdin.fileno()):
+        return True
+    else:
+        return False
 
 def message(msg, newline=False, x=1000):
     """Print messages to terminal"""
+    if not isTTY():
+        return
     try: # this will only work on Linux xos and cygwin
         rows, columns = [int(i) for i in subprocess.check_output(['stty', 'size']).split()] # get the size of the terminal
     except:
