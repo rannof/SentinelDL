@@ -171,7 +171,7 @@ class SciHubClient(object):
                 return 0
         starttime = time.time() # get download start time
         tryouts = 0
-        while tryouts < 5 and os.path.getsize(DLname) < DLsize:
+        while tryouts < 5 and ( (not os.path.exists(DLname) ) or (os.path.getsize(DLname) < DLsize) ):
             try:
                 if tryouts > 0:
                     log.info(f'Retry ({tryouts}/5)...')
