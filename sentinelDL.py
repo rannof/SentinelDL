@@ -17,7 +17,7 @@
 # *    You should have received a copy of the GNU Lesser General Public License     *
 # *    along with this program.  If not, see <http://www.gnu.org/licenses/>.        *
 # ***********************************************************************************
-import os, sys, requests, time, re, datetime, subprocess, getpass
+import os, sys, requests, time, datetime, subprocess, getpass
 import geopandas as gpd
 import argparse
 import logging
@@ -164,14 +164,14 @@ class SciHubClient(object):
             try:
                 self.renew
                 self.session.headers.update({"Range": f"bytes={fsize}-"})  # set opener to start from current point
-                DLf = self.session.get(url, headers=self.headers, stream=True, timeout=600) # reopen url, from last point
+                DLf = self.session.get(url, headers=self.session.headers, stream=True, timeout=600) # reopen url, from last point
                 DLf.raise_for_status()
             except Exception as Ex:
                 logging.error(f'Error opening URL {url}\n{Ex}')
                 return 0
         starttime = time.time() # get download start time
         tryouts = 0
-        while tryouts < 5 and ( (not os.path.exists(DLname) ) or (os.path.getsize(DLname) < DLsize) ):
+        while tryouts < 5 and ((not os.path.exists(DLname)) or (os.path.getsize(DLname) < DLsize)):
             try:
                 if tryouts > 0:
                     log.info(f'Retry ({tryouts}/5)...')
@@ -205,6 +205,7 @@ class SciHubClient(object):
                 tryouts += 1
                 time.sleep(30)  # have a short resting time
                 self.renew
+                fsize = os.path.getsize(DLname)
                 self.session.headers.update({"Range": f"bytes={fsize}-"})  # set opener to start from current point
                 DLf = self.session.get(url, headers=self.session.headers, stream=True,
                                        timeout=600)  # reopen url, from last point
