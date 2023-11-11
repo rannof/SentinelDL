@@ -145,7 +145,7 @@ class SciHubClient(object):
         url = f"https://zipper.dataspace.copernicus.eu/odata/v1/Products({Id})/$value"
         try:
             self.renew
-            DLf = self.session.get(url, headers=self.headers, stream=True, timeout=600) # open url, get the data file
+            DLf = self.session.get(url, headers=self.headers, stream=True, verify=False, allow_redirects=True, timeout=600) # open url, get the data file
             DLf.raise_for_status()
         except Exception as Ex:
             logging.error(f'Error opening URL {url}\n{Ex}')
@@ -153,7 +153,7 @@ class SciHubClient(object):
         if not DLf: return 0 # make sure we have a connection to a file
         DLname = self.datapath + os.sep + DLf.headers.get('Content-Disposition').split("=")[-1].strip().replace('"','')  # get file name
         DLsize = int(DLf.headers.get('Content-Length'))  # get file size
-        log.info(f'{DLname}: {DLsize/131072.:.2f} MB')  # sent name and size to terminal
+        log.info(f'{DLname}: {DLsize/1048576.:.2f} MB')  # sent name and size to terminal
         if os.path.exists(DLname): # check if same name file exists on current location
             fsize = os.path.getsize(DLname) # if so, what is its size
             DLf.close()
@@ -164,7 +164,7 @@ class SciHubClient(object):
             try:
                 self.renew
                 self.session.headers.update({"Range": f"bytes={fsize}-"})  # set opener to start from current point
-                DLf = self.session.get(url, headers=self.session.headers, stream=True, timeout=600) # reopen url, from last point
+                DLf = self.session.get(url, headers=self.session.headers, stream=True, verify=False, allow_redirects=True, timeout=600) # reopen url, from last point
                 DLf.raise_for_status()
             except Exception as Ex:
                 logging.error(f'Error opening URL {url}\n{Ex}')
@@ -176,7 +176,7 @@ class SciHubClient(object):
                 if tryouts > 0:
                     log.info(f'Retry ({tryouts}/5)...')
                 DLt = 0
-                for data in DLf.iter_content(chunk_size=131072):  # read a 1 MB piece of data
+                for data in DLf.iter_content(chunk_size=1048576):  # read a 1 MB piece of data
                     steptime = time.time()
                     with open(DLname,'ab') as outfile: # open the output file for writing
                         if data:
@@ -186,8 +186,8 @@ class SciHubClient(object):
                             DLt = NOW - starttime  # calculate time since starting to download
                             DLstep = NOW - steptime  # calculate time to download segment
                             if DLt and DLstep:
-                                DLrate = (len(data) / 131072.) / DLstep  # calculate current download rate
-                                ETA = (DLsize - fsize) / (DLrate * 131072)  # Estimate Arrival Time in seconds
+                                DLrate = (len(data) / 1048576.) / DLstep  # calculate current download rate
+                                ETA = (DLsize - fsize) / (DLrate * 1048576)  # Estimate Arrival Time in seconds
                                 ETA = str(datetime.datetime.fromtimestamp(ETA) - datetime.datetime.fromtimestamp(0))[
                                       :-3]  # reformat ETA for humans.
                             else:
@@ -208,7 +208,7 @@ class SciHubClient(object):
                 fsize = os.path.getsize(DLname)
                 self.session.headers.update({"Range": f"bytes={fsize}-"})  # set opener to start from current point
                 DLf = self.session.get(url, headers=self.session.headers, stream=True,
-                                       timeout=600)  # reopen url, from last point
+                                       verify=False, allow_redirects=True, timeout=600)  # reopen url, from last point
         if os.path.getsize(DLname) == DLsize:
             return 1
         else:
