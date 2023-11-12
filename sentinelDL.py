@@ -158,9 +158,10 @@ class SciHubClient(object):
             DLf = self.session.get(url, headers=self.headers, stream=True, allow_redirects=True, timeout=600) # open url, get the data file
             DLf.raise_for_status()
         except Exception as Ex:
-            logging.error(f'Error opening URL {url}\n{Ex}')
+            log.error(f'Error opening URL {url}\n{Ex}')
             return 0
-        if not DLf: return 0 # make sure we have a connection to a file
+        if not DLf:
+            return 0  # make sure we have a connection to a file
         DLname = self.datapath + os.sep + DLf.headers.get('Content-Disposition').split("=")[-1].strip().replace('"','')  # get file name
         DLsize = int(DLf.headers.get('Content-Length'))  # get file size
         log.info(f'{DLname}: {DLsize/1048576.:.2f} MB')  # sent name and size to terminal
@@ -168,7 +169,7 @@ class SciHubClient(object):
             fsize = os.path.getsize(DLname)  # if so, what is its size
             DLf.close()
             if fsize == DLsize:  # make sure we did't download the file before
-                logging.info('Already downloaded. skipping.')
+                log.info(f'{DLname}: Already downloaded. skipping.')
                 return 1
             log.info("Starting form {}".format(fsize))
             try:
