@@ -53,7 +53,7 @@ parser.add_argument('-o', '--online', action='store_true', help=f'Only get data 
 parser.add_argument('--start', metavar='YYYY-MM-DD', help=f'Start date', required=True)
 parser.add_argument('--end', metavar='YYYY-MM-DD', help=f'End date', required=True)
 parser.add_argument('--geometry', metavar='geojson/shapefile', help=f'Region of interest polygon (WGS84)', required=True)
-parser.add_argument('-a', '--aux', metavar='aux folder', help=f'Download state vectore auxillary files. Default: {AUXPATH}', default=AUXPATH)
+parser.add_argument('-a', '--aux', action='store_true', help=f'Download state vectore auxillary files. Default: {AUXPATH}', default=False)
 
 def get_keycloak(credfile='.credentials') -> str:
     try:
@@ -164,10 +164,10 @@ class SciHubClient(object):
         DLname = self.datapath + os.sep + DLf.headers.get('Content-Disposition').split("=")[-1].strip().replace('"','')  # get file name
         DLsize = int(DLf.headers.get('Content-Length'))  # get file size
         log.info(f'{DLname}: {DLsize/1048576.:.2f} MB')  # sent name and size to terminal
-        if os.path.exists(DLname): # check if same name file exists on current location
-            fsize = os.path.getsize(DLname) # if so, what is its size
+        if os.path.exists(DLname):  # check if same name file exists on current location
+            fsize = os.path.getsize(DLname)  # if so, what is its size
             DLf.close()
-            if fsize==DLsize: # make sure we did't download the file before
+            if fsize == DLsize:  # make sure we did't download the file before
                 logging.info('Already downloaded. skipping.')
                 return 1
             log.info("Starting form {}".format(fsize))
@@ -188,7 +188,7 @@ class SciHubClient(object):
                 DLt = 0
                 for data in DLf.iter_content(chunk_size=1048576):  # read a 1 MB piece of data
                     steptime = time.time()
-                    with open(DLname,'ab') as outfile: # open the output file for writing
+                    with open(DLname, 'ab') as outfile:  # open the output file for writing
                         if data:
                             outfile.write(data)
                             fsize = os.path.getsize(DLname)
@@ -210,8 +210,10 @@ class SciHubClient(object):
                 message('%s| %d%% @ %.2f sec\n' \
                                 % (datetime.datetime.now().strftime("%Y%m%dT%H:%M:%S"),
                                 fsize / float(DLsize) * 100, DLt))  # print final statistics to terminal
+                DLf.close()
             except Exception as Ex:
                 log.error(f'{Ex}')
+                DLf.close()
                 tryouts += 1
                 time.sleep(30)  # have a short resting time
                 self.renew
@@ -256,9 +258,10 @@ if __name__=='__main__':
     args = parser.parse_args()
     set_logger(log, args.v, args.log_level, args.logfile)
     client = SciHubClient(credfile=args.credfile, datapath=args.datapath) # create a client
-    records = client.search_S1_SLC_OPER(start_date=args.start, end_date=args.end)
-    for record in records['value']:
-        client.download(record['Id'])
+    if args.aux:
+        records = client.search_S1_SLC_OPER(start_date=args.start, end_date=args.end)
+        for record in records['value']:
+            client.download(record['Id'])
     records = client.search_S1_SLC_data(start_date=args.start, end_date=args.end, aoifile=args.geometry, direction=args.direction, track=args.track, online=args.online)
     for record in records['value']:
         client.download(record['Id'])
