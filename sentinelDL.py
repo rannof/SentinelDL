@@ -162,6 +162,7 @@ class SciHubClient(object):
             return 0
         if not DLf:
             return 0  # make sure we have a connection to a file
+        fsize = 0  # placeholder for file size
         DLname = self.datapath + os.sep + DLf.headers.get('Content-Disposition').split("=")[-1].strip().replace('"','')  # get file name
         DLsize = int(DLf.headers.get('Content-Length'))  # get file size
         log.info(f'{DLname}: {DLsize/1048576.:.2f} MB')  # sent name and size to terminal
@@ -192,7 +193,10 @@ class SciHubClient(object):
                     with open(DLname, 'ab') as outfile:  # open the output file for writing
                         if data:
                             outfile.write(data)
-                            fsize = os.path.getsize(DLname)
+                            if os.path.exists(DLname):
+                                fsize = os.path.getsize(DLname)
+                            else:
+                                fsize = 0
                             NOW = time.time()
                             DLt = NOW - starttime  # calculate time since starting to download
                             DLstep = NOW - steptime  # calculate time to download segment
