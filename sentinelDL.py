@@ -155,7 +155,7 @@ class SciHubClient(object):
         url = f"https://zipper.dataspace.copernicus.eu/odata/v1/Products({Id})/$value"
         try:
             self.renew
-            DLf = self.session.get(url, headers=self.headers, stream=True, verify=False, allow_redirects=True, timeout=600) # open url, get the data file
+            DLf = self.session.get(url, headers=self.headers, stream=True, allow_redirects=True, timeout=600) # open url, get the data file
             DLf.raise_for_status()
         except Exception as Ex:
             logging.error(f'Error opening URL {url}\n{Ex}')
@@ -174,7 +174,7 @@ class SciHubClient(object):
             try:
                 self.renew
                 self.session.headers.update({"Range": f"bytes={fsize}-"})  # set opener to start from current point
-                DLf = self.session.get(url, headers=self.session.headers, stream=True, verify=False, allow_redirects=True, timeout=600) # reopen url, from last point
+                DLf = self.session.get(url, headers=self.session.headers, stream=True, allow_redirects=True, timeout=600) # reopen url, from last point
                 DLf.raise_for_status()
             except Exception as Ex:
                 logging.error(f'Error opening URL {url}\n{Ex}')
@@ -218,7 +218,7 @@ class SciHubClient(object):
                 fsize = os.path.getsize(DLname)
                 self.session.headers.update({"Range": f"bytes={fsize}-"})  # set opener to start from current point
                 DLf = self.session.get(url, headers=self.session.headers, stream=True,
-                                       verify=False, allow_redirects=True, timeout=600)  # reopen url, from last point
+                                       allow_redirects=True, timeout=600)  # reopen url, from last point
         if os.path.getsize(DLname) == DLsize:
             return 1
         else:
