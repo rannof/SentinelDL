@@ -29,6 +29,7 @@ formatter = logging.Formatter(fmt='%(asctime)s.%(msecs)03d | %(name)s | %(leveln
                               datefmt='%Y-%m-%dT%H:%M:%S')
 
 DATAPATH = 'data'  # where to save the data
+AUXPATH = 'AUX'  # where to save the auxillary data
 CREDFILE= '.credentials'  # user:password for scihub
 VERBOSE = False
 LOG_FILE = None
@@ -52,6 +53,7 @@ parser.add_argument('-o', '--online', action='store_true', help=f'Only get data 
 parser.add_argument('--start', metavar='YYYY-MM-DD', help=f'Start date', required=True)
 parser.add_argument('--end', metavar='YYYY-MM-DD', help=f'End date', required=True)
 parser.add_argument('--geometry', metavar='geojson/shapefile', help=f'Region of interest polygon (WGS84)', required=True)
+parser.add_argument('-a', '--aux', metavar='aux folder', help=f'Download state vectore auxillary files. Default: {AUXPATH}', default=AUXPATH)
 
 def get_keycloak(credfile='.credentials') -> str:
     try:
@@ -138,6 +140,14 @@ class SciHubClient(object):
            f"https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=(startswith(Name,'S1') and ((Attributes/OData.CSC.StringAttribute/any(att:att/Name eq 'instrumentShortName' and att/OData.CSC.StringAttribute/Value eq 'SAR') and (contains(Name,'SLC') and OData.CSC.Intersects(area=geography'SRID=4326;{aoi}'))){online}{direction}{track})) and ContentDate/Start gt {start_date}T00:00:00.000Z and ContentDate/Start lt {end_date}T00:00:00.000Z&$expand=Attributes&$count=True&$expand=Assets&$skip=0"
         ).json()
         log.info(f"Found {resp['@odata.count']} records.")
+        return resp
+
+    def search_S1_SLC_OPER(self, start_date="2023-09-01", end_date="2023-11-01"):
+        log.debug(f'Searching for aux data from {start_date} to {end_date}')
+        resp = self.session.get(
+           f"https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=(startswith(Name,'S1') and contains(Name,'AUX_POEORB') and Online eq true) and ContentDate/Start gt {start_date}T00:00:00.000Z and ContentDate/Start lt {end_date}T00:00:00.000Z&$expand=Attributes&$count=True&$expand=Assets&$skip=0"
+        ).json()
+        log.info(f"Found {len(resp['value'])} records.")
         return resp
 
     def download(self, Id):
@@ -246,6 +256,9 @@ if __name__=='__main__':
     args = parser.parse_args()
     set_logger(log, args.v, args.log_level, args.logfile)
     client = SciHubClient(credfile=args.credfile, datapath=args.datapath) # create a client
+    records = client.search_S1_SLC_OPER(start_date=args.start, end_date=args.end)
+    for record in records['value']:
+        client.download(record['Id'])
     records = client.search_S1_SLC_data(start_date=args.start, end_date=args.end, aoifile=args.geometry, direction=args.direction, track=args.track, online=args.online)
     for record in records['value']:
         client.download(record['Id'])
