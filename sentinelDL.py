@@ -128,6 +128,8 @@ class SciHubClient(object):
 
     def search_S1_SLC_data(self, start_date="2023-09-01", end_date="2023-11-01", aoifile='NOVA.geojson', direction=None,
                           track=None, online=False):
+        log.debug(f'Searching for {direction} data from {start_date} to {end_date} within geometry in {aoifile}' + (
+            f'from track {track}' if track else ''))
         aoi = str(gpd.read_file(aoifile).geometry.values[0])
         if online:
             online = " and Online eq true"
@@ -135,7 +137,6 @@ class SciHubClient(object):
             direction = f" and Attributes/OData.CSC.StringAttribute/any(att:att/Name eq 'orbitDirection' and att/OData.CSC.StringAttribute/Value eq '{direction}')"
         if track is not None:
             track = f" and Attributes/OData.CSC.IntegerAttribute/any(att:att/Name eq 'relativeOrbitNumber' and att/OData.CSC.IntegerAttribute/Value eq {track})"
-        log.debug(f'Searching for {direction} data from {start_date} to {end_date} within geometry in {aoifile}' + (f'from track {track}' if track else ''))
         resp = self.session.get(
            f"https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=(startswith(Name,'S1') and ((Attributes/OData.CSC.StringAttribute/any(att:att/Name eq 'instrumentShortName' and att/OData.CSC.StringAttribute/Value eq 'SAR') and (contains(Name,'SLC') and OData.CSC.Intersects(area=geography'SRID=4326;{aoi}'))){online}{direction}{track})) and ContentDate/Start gt {start_date}T00:00:00.000Z and ContentDate/Start lt {end_date}T00:00:00.000Z&$expand=Attributes&$count=True&$expand=Assets&$skip=0"
         ).json()
