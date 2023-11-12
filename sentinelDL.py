@@ -129,7 +129,7 @@ class SciHubClient(object):
     def search_S1_SLC_data(self, start_date="2023-09-01", end_date="2023-11-01", aoifile='NOVA.geojson', direction=None,
                           track=None, online=False):
         log.debug(f'Searching for {direction} data from {start_date} to {end_date} within geometry in {aoifile}' + (
-            f'from track {track}' if track else ''))
+            f' from track {track}' if track else ''))
         aoi = str(gpd.read_file(aoifile).geometry.values[0])
         if online:
             online = " and Online eq true"
