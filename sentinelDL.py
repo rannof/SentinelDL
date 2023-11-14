@@ -175,12 +175,13 @@ class SciHubClient(object):
                 return 1
             log.info("Starting form {}".format(fsize))
             try:
+                time.sleep(60)
                 self.renew
                 self.session.headers.update({"Range": f"bytes={fsize}-"})  # set opener to start from current point
                 DLf = self.session.get(url, headers=self.session.headers, stream=True, allow_redirects=True, timeout=600) # reopen url, from last point
                 DLf.raise_for_status()
             except Exception as Ex:
-                logging.error(f'Error opening URL {url}\n{Ex}')
+                log.error(f'Error opening URL {url}\n{Ex}')
                 return 0
         starttime = time.time() # get download start time
         tryouts = 0
@@ -221,7 +222,7 @@ class SciHubClient(object):
                 log.error(f'{Ex}')
                 DLf.close()
                 tryouts += 1
-                time.sleep(30)  # have a short resting time
+                time.sleep(60)  # have a short resting time
                 self.renew
                 fsize = os.path.getsize(DLname)
                 self.session.headers.update({"Range": f"bytes={fsize}-"})  # set opener to start from current point
@@ -268,10 +269,11 @@ if __name__=='__main__':
         records = client.search_S1_SLC_OPER(start_date=args.start, end_date=args.end)
         for record in records['value']:
             client.download(record['Id'])
+            time.sleep(60)
     records = client.search_S1_SLC_data(start_date=args.start, end_date=args.end, aoifile=args.geometry, direction=args.direction, track=args.track, online=args.online)
     for record in records['value']:
         client.download(record['Id'])
-
+        time.sleep(60)
 
 """
 example:
