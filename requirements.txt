@@ -14,7 +14,7 @@ dateparser==1.2.0
 fiona==1.9.5
 fonttools==4.44.0
 
-idna==3.4
+idna==3.7
 importlib-metadata==6.8.0
 kiwisolver==1.4.5
 marshmallow==3.20.1
